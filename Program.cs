@@ -34,8 +34,18 @@ class Program
         var uriBuilder = new UriBuilder(authUrl){
             Query = BuildQueryString(queryParams)
         };
-        Console.WriteLine("Navigate to the following URL to authorize the app:");
+        Console.WriteLine("Navigating to the following URL to authorize the app:");
         Console.WriteLine(uriBuilder.ToString());
+
+        // Console.WriteLine("Opening browser for Spotify authorization...");
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = uriBuilder.ToString(), // The URL you constructed for Spotify authorization
+            UseShellExecute = true
+        });
+
+        var code = WaitForSpotifyCallback.WaitForCallback();
+        Console.WriteLine($"Authorization code received: {code}");
     }
     static string BuildQueryString(Dictionary<string, string> parameters)
     {
