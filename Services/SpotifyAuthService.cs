@@ -5,15 +5,21 @@ using System.Text;
 static class SpotifyAuthService
 {
     
-    public static string GenerateCodeChallenge()
+    public static string GenerateCodeChallenge(string? codeVerifierIn = null)
     {
-        string codeVerifier = GenerateRandomString(64);
+        var codeVerifier = "";
+        if (codeVerifierIn == null)
+        {
+            codeVerifier = GenerateRandomString(64);
+        }
+        else{
+            codeVerifier = codeVerifierIn;
+        }
         Console.WriteLine($"Code Verifier: {codeVerifier}");
         var codeChallenge = GenerateSha256(codeVerifier);
         return codeChallenge;
     }
-
-    static string GenerateRandomString(int length)
+    public static string GenerateRandomString(int length)
     {
         const string possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         var randomBytes = new byte[length];
