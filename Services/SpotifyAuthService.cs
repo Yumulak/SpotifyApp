@@ -15,7 +15,7 @@ static class SpotifyAuthService
         else{
             codeVerifier = codeVerifierIn;
         }
-        Console.WriteLine($"Code Verifier: {codeVerifier}");
+        Console.WriteLine($"Code Verifier in GenerateCodeChallenge: {codeVerifier}");
         var codeChallenge = GenerateSha256(codeVerifier);
         return codeChallenge;
     }

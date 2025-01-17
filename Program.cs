@@ -9,6 +9,7 @@ class Program
 {
     static void Main(string[] args)
     {
+        //load configuration from appsettings.json
         var config = AppConfigService.InitAppConfigService();
         var spotifySettings = new SpotifyAuthSettings();
         config.GetSection("SpotifyApi").Bind(spotifySettings);
@@ -18,6 +19,8 @@ class Program
         var responseType = spotifySettings.ResponseType;
         var codeChallengeMethod = spotifySettings.CodeChallengeMethod;
         string authUrl = "https://accounts.spotify.com/authorize";
+
+        //generate code verifier and challenge
         var codeVerifier = SpotifyAuthService.GenerateRandomString(64);
         var challenge = SpotifyAuthService.GenerateCodeChallenge(codeVerifier);
         Dictionary<string, string> queryParams = new Dictionary<string, string> {
@@ -28,24 +31,35 @@ class Program
             {"code_challenge", challenge},
             {"redirect_uri", redirectUri}
         };
-
         StoreCodeVerifier(codeVerifier);
-
+        
+        //build the authorization URL with query parameters from config
         var uriBuilder = new UriBuilder(authUrl){
             Query = BuildQueryString(queryParams)
         };
         Console.WriteLine("Navigating to the following URL to authorize the app:");
         Console.WriteLine(uriBuilder.ToString());
 
-        // Console.WriteLine("Opening browser for Spotify authorization...");
+        //open the browser to the authorization url
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
-            FileName = uriBuilder.ToString(), // The URL you constructed for Spotify authorization
+            FileName = uriBuilder.ToString(), 
             UseShellExecute = true
         });
 
-        var code = WaitForSpotifyCallback.WaitForCallback();
-        Console.WriteLine($"Authorization code received: {code}");
+        //wait for the callback from spotify and retrieve the authorization code from 
+        try{
+            var code = WaitForSpotifyCallback.WaitForCallback();
+            Console.WriteLine($"Authorization code received: {code}");
+        }
+        catch(Exception e){
+            Console.WriteLine("Error: " + e.Message);
+            
+        }
+        
+
+        //use authorization code to request refresh token
+
     }
     static string BuildQueryString(Dictionary<string, string> parameters)
     {
@@ -60,6 +74,6 @@ class Program
     static void StoreCodeVerifier(string codeVerifier)
     {
         // Store the code verifier in a secure location
-        Console.WriteLine("Code verifier: " + codeVerifier);
+        Console.WriteLine("Code verifier in main file: " + codeVerifier);
     }
 }
