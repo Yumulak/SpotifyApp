@@ -18,11 +18,14 @@ class Program
         var scope = spotifySettings.Scope;
         var responseType = spotifySettings.ResponseType;
         var codeChallengeMethod = spotifySettings.CodeChallengeMethod;
-        string authUrl = "https://accounts.spotify.com/authorize";
+        var SpotifyBaseUrl = spotifySettings.SpotifyApiBaseUrl;
+        string authUrl = $"{SpotifyBaseUrl}authorize";
 
         //generate code verifier and challenge
         var codeVerifier = SpotifyAuthService.GenerateRandomString(64);
         var challenge = SpotifyAuthService.GenerateCodeChallenge(codeVerifier);
+
+        //create query parameters for authorization URL
         Dictionary<string, string> queryParams = new Dictionary<string, string> {
             {"response_type", responseType },
             {"client_id", clientId},
@@ -31,6 +34,8 @@ class Program
             {"code_challenge", challenge},
             {"redirect_uri", redirectUri}
         };
+
+        //store the code verifier for later use
         StoreCodeVerifier(codeVerifier);
         
         //build the authorization URL with query parameters from config
@@ -46,10 +51,11 @@ class Program
             FileName = uriBuilder.ToString(), 
             UseShellExecute = true
         });
-
+        
         //wait for the callback from spotify and retrieve the authorization code from 
+        var code = "";
         try{
-            var code = WaitForSpotifyCallback.WaitForCallback();
+            code = WaitForSpotifyCallback.WaitForCallback();
             Console.WriteLine($"Authorization code received: {code}");
         }
         catch(Exception e){
@@ -58,8 +64,10 @@ class Program
         }
         
 
-        //use authorization code to request refresh token
-
+        //use authorization code to request access token
+        //send post request to https://accounts.spotify.com/api/token
+        var accessToken = SpotifyAuthService.GetAccessToken("authorization_code", code, redirectUri, clientId, codeVerifier);
+        Console.WriteLine("Access Token: " + accessToken.ToString());
     }
     static string BuildQueryString(Dictionary<string, string> parameters)
     {
