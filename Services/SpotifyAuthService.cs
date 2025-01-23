@@ -1,14 +1,9 @@
-using System;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-
 static class SpotifyAuthService
 {
     public static string AccessToken { get; private set; }
     public static string GenerateCodeChallenge(string? codeVerifierIn = null)
     {
-        var codeVerifier = "";
+        string codeVerifier;
         if (codeVerifierIn == null)
         {
             codeVerifier = GenerateRandomString(64);
@@ -16,10 +11,10 @@ static class SpotifyAuthService
         else{
             codeVerifier = codeVerifierIn;
         }
-        Console.WriteLine($"Code Verifier in GenerateCodeChallenge: {codeVerifier}");
         var codeChallenge = GenerateSha256(codeVerifier);
         return codeChallenge;
     }
+
     public static string GenerateRandomString(int length)
     {
         const string possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -44,38 +39,41 @@ static class SpotifyAuthService
         {
             var bytes = Encoding.UTF8.GetBytes(codeVerifier);
             var hash = sha256.ComputeHash(bytes);
-            return Convert.ToBase64String(hash);
+            return Convert.ToBase64String(hash)
+            .Replace("+", "-")
+            .Replace("/", "_")
+            .Replace("=", "");
         }
     }
 
-    public static async Task<string> GetAccessToken(string grant_type, string code, string redirect_uri, string client_id, string code_verifier)
+    public static async Task<string> GetAccessToken(string code, string redirect_uri, string client_id, string code_verifier)
     {
+        Console.WriteLine("Starting GetAccessToken");
+        Console.WriteLine($"Code Verifier: {code_verifier}");        
 
-        var queryParams = new Dictionary<string, string> {
-            {"grant_type", grant_type },
-            {"code", code},
-            {"redirect_uri", redirect_uri},
-            {"client_id", client_id},
-            {"code_verifier", code_verifier}
-        };
+        var requestData = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string, string>("grant_type", "authorization_code"),
+            new KeyValuePair<string, string>("code", code),
+            new KeyValuePair<string, string>("redirect_uri", redirect_uri),
+            new KeyValuePair<string, string>("client_id", client_id),
+            new KeyValuePair<string, string>("code_verifier", code_verifier),
+        });
 
-        var content = new FormUrlEncodedContent(queryParams);
-        var response = new HttpResponseMessage();
+        var client = SpotifyAPIService.CreateHttpClient();        
 
         try
-        {        
-            using (var client = SpotifyAPIService.CreateHttpClient()){
-                response = await client.PostAsync("https://accounts.spotify.com/api/token", content);
-            }
+        {  
+            var response = await client.PostAsync("https://accounts.spotify.com/api/token", requestData);      
+            // response.EnsureSuccessStatusCode();
 
-            response.EnsureSuccessStatusCode();
-
-            var responseString = await response.Content.ReadAsStringAsync();
+            var responseString = await response.Content.ReadAsStringAsync();            
+            Console.WriteLine("Status Code: " + response.StatusCode);
+            Console.WriteLine("Response: " + responseString);
             var tokenResponse = JsonSerializer.Deserialize<AccessTokenResponse>(responseString);
 
             if(tokenResponse != null){
-                Console.WriteLine("Access Token: " + tokenResponse.AccessToken);
-                AccessToken = tokenResponse.AccessToken;
+                AccessToken = tokenResponse.access_token;
             }
         }
         catch(Exception e)

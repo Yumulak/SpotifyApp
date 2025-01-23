@@ -1,10 +1,4 @@
-﻿using System;
-using System.Security.Cryptography;
-using System.Text;
-using Microsoft.Extensions.Configuration;
-using Microsoft.VisualBasic;
-using System.Web;
-
+﻿
 class Program
 {
     static void Main(string[] args)
@@ -42,7 +36,7 @@ class Program
         var uriBuilder = new UriBuilder(authUrl){
             Query = BuildQueryString(queryParams)
         };
-        Console.WriteLine("Navigating to the following URL to authorize the app:");
+        Console.WriteLine("Navigating to the following URL to authorize the app:/n");
         Console.WriteLine(uriBuilder.ToString());
 
         //open the browser to the authorization url
@@ -66,15 +60,19 @@ class Program
 
         //use authorization code to request access token
         //send post request to https://accounts.spotify.com/api/token
-        var accessToken = SpotifyAuthService.GetAccessToken("authorization_code", code, redirectUri, clientId, codeVerifier);
-        Console.WriteLine("Access Token: " + accessToken.ToString());
+        var accessToken = SpotifyAuthService.GetAccessToken(code, redirectUri, clientId, codeVerifier);
+        Console.WriteLine("Access Token in Main: " + accessToken.Result);
+
+        //store the access token securely
+
+        //use access token to make requests to spotify API (get user profile, playlists, etc.)
     }
     static string BuildQueryString(Dictionary<string, string> parameters)
     {
         var query = HttpUtility.ParseQueryString(string.Empty);
         foreach (var param in parameters)
         {
-            Console.WriteLine(param.Key + ": " + param.Value);
+            // Console.WriteLine(param.Key + ": " + param.Value); uncomment to debug
             query[param.Key] = param.Value;
         }
         return query.ToString();
@@ -82,6 +80,6 @@ class Program
     static void StoreCodeVerifier(string codeVerifier)
     {
         // Store the code verifier in a secure location
-        Console.WriteLine("Code verifier in main file: " + codeVerifier);
+        // Console.WriteLine("Code verifier in main file: " + codeVerifier);
     }
 }

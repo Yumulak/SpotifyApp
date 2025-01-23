@@ -1,7 +1,3 @@
-using System;
-using System.Net;
-using Microsoft.VisualBasic;
-
 public static class WaitForSpotifyCallback
 {
     public static string WaitForCallback(){
@@ -19,7 +15,6 @@ public static class WaitForSpotifyCallback
         string browserMessage = "Error: No code or error returned from Spotify. Check API communication logic.";
         try{
             callbackReturnVal = request.Get("code");
-            Console.WriteLine("The try block in WaitForCallback has been reached.");
             browserMessage = "Authorization code received. You can close this window.";
         }
         catch(Exception e){

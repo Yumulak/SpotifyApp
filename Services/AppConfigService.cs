@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-
 public static class AppConfigService
 {
     public static IConfigurationRoot InitAppConfigService()
