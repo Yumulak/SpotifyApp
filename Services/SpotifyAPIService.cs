@@ -37,7 +37,7 @@ public class SpotifyAPIService
 
         try
         {  
-            var response = await client.PostAsync("https://accounts.spotify.com/api/token", requestData);      
+            var response = await client.PostAsync("https://accounts.spotify.com/v1/me", requestData);      
             response.EnsureSuccessStatusCode();
 
             var responseString = await response.Content.ReadAsStringAsync();            

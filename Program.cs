@@ -61,11 +61,26 @@ class Program
         //use authorization code to request access token
         //send post request to https://accounts.spotify.com/api/token
         var accessToken = SpotifyAuthService.GetAccessToken(code, redirectUri, clientId, codeVerifier);
-        Console.WriteLine("Access Token in Main: " + accessToken.Result);
-
+        Console.WriteLine("Access Token in Main: " + accessToken.Result.Item1);
+        Console.WriteLine("Refresh Token in Main: " + accessToken.Result.Item2);        
+        
         //store the access token securely
+        string encryptionKey = "Your32CharLongEncryptionKey!";
+        var keyVault = new SimulatedKeyVaultService(encryptionKey);
+        keyVault.StoreSecret("access_token", accessToken.Result.Item1);
+        keyVault.StoreSecret("refresh_token", accessToken.Result.Item2);
+
+        var retrievedAccessToken = keyVault.RetrieveSecret("access_token");
+        var retrievedRefreshToken = keyVault.RetrieveSecret("refresh_token");
 
         //use access token to make requests to spotify API (get user profile, playlists, etc.)
+        
+
+        bool stop = false;
+        while(stop == false){
+            Console.WriteLine("");
+        }
+
     }
     static string BuildQueryString(Dictionary<string, string> parameters)
     {

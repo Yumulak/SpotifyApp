@@ -1,6 +1,7 @@
 static class SpotifyAuthService
 {
     public static string AccessToken { get; private set; }
+    public static string RefreshToken { get; private set; }
     public static string GenerateCodeChallenge(string? codeVerifierIn = null)
     {
         string codeVerifier;
@@ -46,7 +47,7 @@ static class SpotifyAuthService
         }
     }
 
-    public static async Task<string> GetAccessToken(string code, string redirect_uri, string client_id, string code_verifier)
+    public static async Task<(string, string)> GetAccessToken(string code, string redirect_uri, string client_id, string code_verifier)
     {
         Console.WriteLine("Starting GetAccessToken");
         Console.WriteLine($"Code Verifier: {code_verifier}");        
@@ -74,6 +75,7 @@ static class SpotifyAuthService
 
             if(tokenResponse != null){
                 AccessToken = tokenResponse.access_token;
+                RefreshToken = tokenResponse.refresh_token;
             }
         }
         catch(Exception e)
@@ -81,7 +83,55 @@ static class SpotifyAuthService
             Console.WriteLine("Error fetching access token: " + e.Message);
         }
 
-        return AccessToken;
+        return (AccessToken, RefreshToken);
     }
-    
+    public static async Task<(string, string)> RefreshAccessToken(string client_id, string refresh_token)
+    {
+        Console.WriteLine("Starting RefreshAccessToken");       
+
+        var requestData = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string, string>("grant_type", "authorization_code"),
+            new KeyValuePair<string, string>("refresh_token", refresh_token),
+            new KeyValuePair<string, string>("client_id", client_id)
+        });
+
+        var client = SpotifyAPIService.CreateHttpClient();        
+
+        try
+        {  
+            var response = await client.PostAsync("https://accounts.spotify.com/api/token", requestData);      
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();            
+            Console.WriteLine("Status Code: " + response.StatusCode);
+            Console.WriteLine("Response: " + responseString);
+            var tokenResponse = JsonSerializer.Deserialize<AccessTokenResponse>(responseString);
+
+            if(tokenResponse != null){
+                AccessToken = tokenResponse.access_token;
+                RefreshToken = tokenResponse.refresh_token;
+            }
+        }
+        catch(Exception e)
+        {
+            Console.WriteLine("Error refreshing access token: " + e.Message);
+        }
+
+        return (AccessToken, RefreshToken);
+    }
+    public static async Task SaveTokens(string encryptedAccessToken, string encryptedRefreshToken){
+        //create a file
+        string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SpotifyConsolePrototype");
+        Directory.CreateDirectory(appDataPath); 
+        string storageFilePath = Path.Combine(appDataPath, "simulated_key_vault.txt");
+
+        //write tokens to the file on two lines
+
+        // Create a string array with the additional lines of text
+        string[] lines = { encryptedRefreshToken, encryptedAccessToken };
+
+        // Append new lines of text to the file
+        File.AppendAllLines(storageFilePath, lines);
+    }
 }
