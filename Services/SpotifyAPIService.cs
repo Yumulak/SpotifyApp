@@ -10,50 +10,114 @@ public class SpotifyAPIService
         }
         return query.ToString();
     }
-
     public static HttpClient CreateHttpClient(string? accessToken = null){
         
         var client = new HttpClient();
-        // client.DefaultRequestHeaders.Add("Authorization", "Bearer " + accessToken);
+        if(accessToken != null){
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        }
         return client;
     }
-
-    //GetUserProfile to be implemented to get user profile information
-    //currently code copied from GetAccessToken
-    public static async Task GetUserProfile(string code, string redirect_uri, string client_id, string code_verifier)
+    public static async Task<UserProfile> GetUserProfile(string accessToken)
     {
-        Console.WriteLine("Starting GetUserProfile");
+        // Console.WriteLine("Starting GetUserProfile");
 
-        var requestData = new FormUrlEncodedContent(new[]
-        {
-            new KeyValuePair<string, string>("grant_type", "authorization_code"),
-            new KeyValuePair<string, string>("code", code),
-            new KeyValuePair<string, string>("redirect_uri", redirect_uri),
-            new KeyValuePair<string, string>("client_id", client_id),
-            new KeyValuePair<string, string>("code_verifier", code_verifier),
-        });
+        var client = new HttpClient();
+        var request = new HttpRequestMessage();
+        request.RequestUri = new Uri("https://api.spotify.com/v1/me");
+        request.Method = HttpMethod.Get;
 
-        var client = SpotifyAPIService.CreateHttpClient();        
+        request.Headers.Add("Authorization", "Bearer " + accessToken);
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        var response = await client.SendAsync(request);
+        var result = await response.Content.ReadAsStringAsync();
+        var userProfile = JsonSerializer.Deserialize<UserProfile>(result);
+        return userProfile;
 
-        try
-        {  
-            var response = await client.PostAsync("https://accounts.spotify.com/v1/me", requestData);      
-            response.EnsureSuccessStatusCode();
-
-            var responseString = await response.Content.ReadAsStringAsync();            
-            Console.WriteLine("Status Code: " + response.StatusCode);
-            Console.WriteLine("Response: " + responseString);
-            var tokenResponse = JsonSerializer.Deserialize<AccessTokenResponse>(responseString);
-
-            if(tokenResponse != null){
-                
-            }
-        }
-        catch(Exception e)
-        {
-            Console.WriteLine("Error fetching access token: " + e.Message);
-        }
-
+        // var client = SpotifyAPIService.CreateHttpClient(accessToken);
         
+        // try
+        // {  
+        //     var response = await client.GetAsync("https://accounts.spotify.com/v1/me");      
+        //     // response.EnsureSuccessStatusCode();
+
+        //     var responseString = await response.Content.ReadAsStringAsync();            
+        //     Console.WriteLine("Status Code: " + response.StatusCode);
+        //     Console.WriteLine("Response: " + responseString);
+        //     var userProfile = JsonSerializer.Deserialize<UserProfile>(responseString);
+
+        //     if(userProfile != null){
+        //         Console.WriteLine(userProfile.display_name);
+        //         Console.WriteLine(userProfile.email);
+        //         return userProfile;
+        //     }
+        // }
+        // catch(Exception e)
+        // {
+        //     Console.WriteLine("Error fetching user profile: " + e.Message);
+        // }
+        // return null;
     }
-}
+    private static async Task<LikedSongs> GetPageOfUsersLikedSongs(string accessToken, string? url = null)
+    {
+        var client = new HttpClient();
+        var request = new HttpRequestMessage();
+        if(url != null){
+            request.RequestUri = new Uri(url);
+        }
+        else{
+            request.RequestUri = new Uri("https://api.spotify.com/v1/me/tracks?limit=50");
+        }
+        request.Method = HttpMethod.Get;
+
+        request.Headers.Add("Authorization", "Bearer " + accessToken);
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        var response = await client.SendAsync(request);
+        var result = await response.Content.ReadAsStringAsync();
+        var likedSongs = JsonSerializer.Deserialize<LikedSongs>(result);
+        return likedSongs;
+    }
+    public static async Task<List<string>> GetAllUsersLikedSongs(string accessToken){
+        List<string> allSongs = new List<string>();
+        var currentPage = GetPageOfUsersLikedSongs(accessToken);
+        allSongs.AddRange(currentPage.Result.items.Select(item => item.track.name));
+        Console.WriteLine("Total songs: " + allSongs.Count);
+        while(currentPage.Result.next != null){
+            currentPage = GetPageOfUsersLikedSongs(accessToken, currentPage.Result.next);
+            allSongs.AddRange(currentPage.Result.items.Select(item => item.track.name));
+            Console.WriteLine("Total songs: " + allSongs.Count);
+        }
+        return allSongs;
+    }
+    private static async Task<Playlists> GetPageOfUsersPlaylists(string accessToken, string? url = null)
+    {
+        var client = new HttpClient();
+        var request = new HttpRequestMessage();
+        if(url != null){
+            request.RequestUri = new Uri(url);
+        }
+        else{
+            request.RequestUri = new Uri("https://api.spotify.com/v1/me/playlists?limit=50");
+        }
+        request.Method = HttpMethod.Get;
+
+        request.Headers.Add("Authorization", "Bearer " + accessToken);
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        var response = await client.SendAsync(request);
+        var result = await response.Content.ReadAsStringAsync();
+        var playlists = JsonSerializer.Deserialize<Playlists>(result);
+        return playlists;
+    }
+    public static async Task<List<string>> GetAllUsersPlaylists(string accessToken){
+        List<string> allPlaylists = new List<string>();
+        var currentPage = GetPageOfUsersPlaylists(accessToken);
+        allPlaylists.AddRange(currentPage.Result.items.Select(item => item.name));
+        Console.WriteLine("Total playlists: " + allPlaylists.Count);
+        while(currentPage.Result.next != null){
+            currentPage = GetPageOfUsersPlaylists(accessToken, currentPage.Result.next);
+            allPlaylists.AddRange(currentPage.Result.items.Select(item => item.name));
+            Console.WriteLine("Total playlists: " + allPlaylists.Count);
+        }
+        return allPlaylists;
+    }
+}   

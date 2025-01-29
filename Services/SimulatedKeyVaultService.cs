@@ -1,7 +1,8 @@
 public class SimulatedKeyVaultService
 {
     private readonly string storageFilePath;
-    private readonly byte[] _key;
+    private readonly byte[] _key = Encoding.UTF8.GetBytes("Your16ByteKeyHere!");
+    private static readonly byte[] IV = Encoding.UTF8.GetBytes("ThisIsAnIV123456");  // Must be 16 bytes
 
     public SimulatedKeyVaultService(string encryptionKey)
     {
@@ -25,16 +26,16 @@ public class SimulatedKeyVaultService
     {
         if (!File.Exists(storageFilePath))
             throw new InvalidOperationException("Storage file not found.");
-
+        var secret = "";
         foreach (var line in File.ReadAllLines(storageFilePath))
         {
             var parts = line.Split(':');
             if (parts.Length == 2 && parts[0] == key)
             {
-                return Decrypt(parts[1]);
+                secret = Decrypt(parts[1]);
             }
         }
-
+        return secret;
         throw new KeyNotFoundException($"Key '{key}' not found.");
     }
 
@@ -43,6 +44,7 @@ public class SimulatedKeyVaultService
         using var aes = Aes.Create();
         aes.Key = _key;
         aes.GenerateIV();
+        aes.IV = IV;
         var iv = aes.IV;
 
         using var encryptor = aes.CreateEncryptor();
@@ -57,6 +59,7 @@ public class SimulatedKeyVaultService
         return Convert.ToBase64String(ms.ToArray());
     }
 
+    //problem where secret is not returned in Decrypt()
     private string Decrypt(string cipherText)
     {
         var fullCipher = Convert.FromBase64String(cipherText);
@@ -75,7 +78,6 @@ public class SimulatedKeyVaultService
         using var ms = new MemoryStream(cipherBytes);
         using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
         using var sr = new StreamReader(cs);
-
         return sr.ReadToEnd();
     }
 }

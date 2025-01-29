@@ -49,8 +49,7 @@ static class SpotifyAuthService
 
     public static async Task<(string, string)> GetAccessToken(string code, string redirect_uri, string client_id, string code_verifier)
     {
-        Console.WriteLine("Starting GetAccessToken");
-        Console.WriteLine($"Code Verifier: {code_verifier}");        
+        Console.WriteLine("\nStarting GetAccessToken");     
 
         var requestData = new FormUrlEncodedContent(new[]
         {

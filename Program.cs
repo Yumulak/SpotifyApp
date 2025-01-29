@@ -36,8 +36,9 @@ class Program
         var uriBuilder = new UriBuilder(authUrl){
             Query = BuildQueryString(queryParams)
         };
-        Console.WriteLine("Navigating to the following URL to authorize the app:/n");
+        Console.WriteLine("Navigating to the following URL to authorize the app:");
         Console.WriteLine(uriBuilder.ToString());
+        Console.WriteLine();
 
         //open the browser to the authorization url
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
@@ -61,8 +62,8 @@ class Program
         //use authorization code to request access token
         //send post request to https://accounts.spotify.com/api/token
         var accessToken = SpotifyAuthService.GetAccessToken(code, redirectUri, clientId, codeVerifier);
-        Console.WriteLine("Access Token in Main: " + accessToken.Result.Item1);
-        Console.WriteLine("Refresh Token in Main: " + accessToken.Result.Item2);        
+        // Console.WriteLine("Access Token in Main: " + accessToken.Result.Item1);
+        // Console.WriteLine("Refresh Token in Main: " + accessToken.Result.Item2);        
         
         //store the access token securely
         string encryptionKey = "Your32CharLongEncryptionKey!";
@@ -75,10 +76,35 @@ class Program
 
         //use access token to make requests to spotify API (get user profile, playlists, etc.)
         
+        Console.WriteLine("\nFetching user profile...");
+        var userProfile = SpotifyAPIService.GetUserProfile(retrievedAccessToken);
+        // Console.WriteLine($"Retrieved access token: {retrievedAccessToken}");
+        Console.WriteLine("Fetched user profile for: " + userProfile.Result.display_name + " Email: " + userProfile.Result.email);
 
         bool stop = false;
         while(stop == false){
-            Console.WriteLine("");
+            Console.WriteLine("Get liked songs? s");
+            Console.WriteLine("Get playlists? p");
+            Console.WriteLine("Exit? e");
+            string yesNo = Console.ReadLine();
+            if(yesNo == "s"){
+                Console.WriteLine("Fetching user liked songs...");
+                var likedSongs = SpotifyAPIService.GetAllUsersLikedSongs(retrievedAccessToken);
+                foreach(var item in likedSongs.Result){
+                    Console.WriteLine(item);
+                }
+            }
+            else if(yesNo == "p"){
+                Console.WriteLine("Fetching user playlists...");
+                var playLists = SpotifyAPIService.GetAllUsersPlaylists(retrievedAccessToken);
+                foreach(var item in playLists.Result){
+                    Console.WriteLine(item);
+                }
+            }
+            else if(yesNo == "e"){
+                Console.WriteLine("Exiting...");
+                stop = true;
+            }
         }
 
     }
