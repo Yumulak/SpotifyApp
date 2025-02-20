@@ -80,17 +80,18 @@ class Program
         var userProfile = SpotifyAPIService.GetUserProfile(retrievedAccessToken);
         // Console.WriteLine($"Retrieved access token: {retrievedAccessToken}");
         Console.WriteLine("Fetched user profile for: " + userProfile.Result.display_name + " Email: " + userProfile.Result.email);
+        var likedSongs = SpotifyAPIService.GetAllUsersLikedSongs(retrievedAccessToken);
 
         bool stop = false;
         while(stop == false){
             Console.WriteLine("Get liked songs? s");
             Console.WriteLine("Get playlists? p");
+            Console.WriteLine("Get genres? g");
             Console.WriteLine("Exit? e");
             string yesNo = Console.ReadLine();
             if(yesNo == "s"){
                 Console.WriteLine("Fetching user liked songs...");
-                var likedSongs = SpotifyAPIService.GetAllUsersLikedSongs(retrievedAccessToken);
-                foreach(var item in likedSongs.Result){
+                foreach(var item in likedSongs.Result.Item1){
                     Console.WriteLine(item);
                 }
             }
@@ -99,6 +100,14 @@ class Program
                 var playLists = SpotifyAPIService.GetAllUsersPlaylists(retrievedAccessToken);
                 foreach(var item in playLists.Result){
                     Console.WriteLine(item);
+                }
+            }
+            //list in GetAllUsersLikedSongs will have duplicate songs, causing the SongsGenre dictionary to have duplicate keys
+            else if(yesNo == "g"){
+                Console.WriteLine("Fetching genres...");
+                var genres = SpotifyAPIService.GetSongGenresDict(retrievedAccessToken, likedSongs.Result.Item2);
+                foreach(var kvp in genres.Result){
+                    Console.WriteLine(kvp.Value.ToList());
                 }
             }
             else if(yesNo == "e"){

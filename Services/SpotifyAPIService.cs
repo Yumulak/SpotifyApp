@@ -1,3 +1,5 @@
+using Models.SeveralArtists;
+
 public class SpotifyAPIService
 {
     public static string BuildQueryString(Dictionary<string, string> parameters)
@@ -33,30 +35,6 @@ public class SpotifyAPIService
         var result = await response.Content.ReadAsStringAsync();
         var userProfile = JsonSerializer.Deserialize<UserProfile>(result);
         return userProfile;
-
-        // var client = SpotifyAPIService.CreateHttpClient(accessToken);
-        
-        // try
-        // {  
-        //     var response = await client.GetAsync("https://accounts.spotify.com/v1/me");      
-        //     // response.EnsureSuccessStatusCode();
-
-        //     var responseString = await response.Content.ReadAsStringAsync();            
-        //     Console.WriteLine("Status Code: " + response.StatusCode);
-        //     Console.WriteLine("Response: " + responseString);
-        //     var userProfile = JsonSerializer.Deserialize<UserProfile>(responseString);
-
-        //     if(userProfile != null){
-        //         Console.WriteLine(userProfile.display_name);
-        //         Console.WriteLine(userProfile.email);
-        //         return userProfile;
-        //     }
-        // }
-        // catch(Exception e)
-        // {
-        //     Console.WriteLine("Error fetching user profile: " + e.Message);
-        // }
-        // return null;
     }
     private static async Task<LikedSongs> GetPageOfUsersLikedSongs(string accessToken, string? url = null)
     {
@@ -77,17 +55,20 @@ public class SpotifyAPIService
         var likedSongs = JsonSerializer.Deserialize<LikedSongs>(result);
         return likedSongs;
     }
-    public static async Task<List<string>> GetAllUsersLikedSongs(string accessToken){
+    public static async Task<(List<string>, HashSet<Models.LikedSongs.Item>)> GetAllUsersLikedSongs(string accessToken){
         List<string> allSongs = new List<string>();
+        HashSet<Models.LikedSongs.Item> allLikedSongObject = new HashSet<Models.LikedSongs.Item>();
         var currentPage = GetPageOfUsersLikedSongs(accessToken);
+        allLikedSongObject.UnionWith(currentPage.Result.items);
         allSongs.AddRange(currentPage.Result.items.Select(item => item.track.name));
         Console.WriteLine("Total songs: " + allSongs.Count);
         while(currentPage.Result.next != null){
             currentPage = GetPageOfUsersLikedSongs(accessToken, currentPage.Result.next);
             allSongs.AddRange(currentPage.Result.items.Select(item => item.track.name));
+            allLikedSongObject.UnionWith(currentPage.Result.items);
             Console.WriteLine("Total songs: " + allSongs.Count);
         }
-        return allSongs;
+        return (allSongs, allLikedSongObject);
     }
     private static async Task<Playlists> GetPageOfUsersPlaylists(string accessToken, string? url = null)
     {
@@ -120,4 +101,36 @@ public class SpotifyAPIService
         }
         return allPlaylists;
     }
+    public static async Task<Dictionary<string, List<string>>> GetSongGenresDict(string accessToken, HashSet<Models.LikedSongs.Item> likedSongs){
+        List<Models.SeveralArtists.Artist> allArtists = new List<Models.SeveralArtists.Artist>();
+        List<string> artistIDs = new List<string>();
+        Dictionary<string, List<string>> songs_artists = new Dictionary<string, List<string>>();
+        var client = new HttpClient();
+        var request = new HttpRequestMessage();
+
+        foreach(var song in likedSongs){
+            artistIDs.AddRange(song.track.artists.Select(a => a.id));
+            songs_artists.Add(song.track.name, artistIDs);
+            artistIDs.Clear();
+        }
+
+        foreach(var songArtistListPair in songs_artists){        
+            request.RequestUri = new Uri($"https://api.spotify.com/v1/artists?ids={string.Join(",", songArtistListPair.Value)}");
+            request.Method = HttpMethod.Get;
+            request.Headers.Add("Authorization", "Bearer " + accessToken);
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            var response = await client.SendAsync(request);
+            var result = await response.Content.ReadAsStringAsync();
+            var deserializedArtists = JsonSerializer.Deserialize<ArtistList>(result);
+            allArtists.AddRange(deserializedArtists.artists);
+            foreach( var artist in deserializedArtists.artists){
+                foreach(var kvp in songs_artists){
+                    kvp.Value.Clear();
+                    kvp.Value.AddRange(artist.genres);
+                }
+            }
+        }
+        return songs_artists;
+    }    
 }   
