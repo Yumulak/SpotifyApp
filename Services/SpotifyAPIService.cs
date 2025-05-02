@@ -142,5 +142,11 @@ public class SpotifyAPIService
             
         }
         return (songs_artistIDs, uniqueGenres);
-    }    
+    }  
+    public static void CreatePlaylist(string retrievedAccessToken, string genre){
+        //make a post request to https://api.spotify.com/v1/users/{user_id}/playlists
+        //using the input genre name as the name of the playlist
+        //and the description as "Playlist created by SpotifyAPIService"
+        //put all songs in the songs_artistIDs dictionary into the playlist that have the input genre in the values list
+    }   
 }   
