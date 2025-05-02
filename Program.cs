@@ -106,8 +106,9 @@ class Program
             else if(yesNo == "g"){
                 Console.WriteLine("Fetching genres...");
                 var genres = SpotifyAPIService.GetSongGenresDict(retrievedAccessToken, likedSongs.Result.Item2);
-                foreach(var kvp in genres.Result){
-                    Console.WriteLine(kvp.Value.ToList());
+                Console.WriteLine("Total genres found: " + genres.Result.Item1.Count);
+                foreach(var genre in genres.Result.Item2){
+                    Console.WriteLine(genre);
                 }
             }
             else if(yesNo == "e"){

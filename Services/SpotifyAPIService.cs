@@ -101,36 +101,46 @@ public class SpotifyAPIService
         }
         return allPlaylists;
     }
-    public static async Task<Dictionary<string, List<string>>> GetSongGenresDict(string accessToken, HashSet<Models.LikedSongs.Item> likedSongs){
+    public static async Task<(Dictionary<string, List<string>>, HashSet<string>)> GetSongGenresDict(string accessToken, HashSet<Models.LikedSongs.Item> likedSongs){
         List<Models.SeveralArtists.Artist> allArtists = new List<Models.SeveralArtists.Artist>();
-        List<string> artistIDs = new List<string>();
-        Dictionary<string, List<string>> songs_artists = new Dictionary<string, List<string>>();
-        var client = new HttpClient();
-        var request = new HttpRequestMessage();
+        Dictionary<string, List<string>> songs_artistIDs = new Dictionary<string, List<string>>();
+        
 
         foreach(var song in likedSongs){
+            List<string> artistIDs = new List<string>();
             artistIDs.AddRange(song.track.artists.Select(a => a.id));
-            songs_artists.Add(song.track.name, artistIDs);
-            artistIDs.Clear();
+            if(!songs_artistIDs.ContainsKey(song.track.name)){
+                songs_artistIDs.Add(song.track.name, artistIDs);
+            }
         }
-
-        foreach(var songArtistListPair in songs_artists){        
+        // For each song, send an API request to the Get Several Artists endpoint with the ids of artists from the liked songs list
+        var client = new HttpClient();       
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        int genreCount = 0;
+        HashSet<string> uniqueGenres = new HashSet<string>();
+        foreach(var songArtistListPair in songs_artistIDs){
+            var request = new HttpRequestMessage();
+            request.Headers.Add("Authorization", "Bearer " + accessToken);        
             request.RequestUri = new Uri($"https://api.spotify.com/v1/artists?ids={string.Join(",", songArtistListPair.Value)}");
             request.Method = HttpMethod.Get;
-            request.Headers.Add("Authorization", "Bearer " + accessToken);
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
             var response = await client.SendAsync(request);
             var result = await response.Content.ReadAsStringAsync();
             var deserializedArtists = JsonSerializer.Deserialize<ArtistList>(result);
-            allArtists.AddRange(deserializedArtists.artists);
-            foreach( var artist in deserializedArtists.artists){
-                foreach(var kvp in songs_artists){
-                    kvp.Value.Clear();
-                    kvp.Value.AddRange(artist.genres);
+
+            foreach(var artist in deserializedArtists.artists){
+                foreach(var kvp in songs_artistIDs.Where(kvp => kvp.Key == songArtistListPair.Key)){
+                        kvp.Value.Clear();
+                        kvp.Value.AddRange(artist.genres);
+                        uniqueGenres.UnionWith(artist.genres);                        
                 }
             }
+            if(genreCount < uniqueGenres.Count){
+                genreCount = uniqueGenres.Count;
+                Console.WriteLine($"Genre count: {uniqueGenres.Count}");
+            }
+            
         }
-        return songs_artists;
+        return (songs_artistIDs, uniqueGenres);
     }    
 }   
