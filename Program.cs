@@ -107,7 +107,6 @@ class Program
             else if(yesNo == "g"){
                 Console.WriteLine("Fetching genres...");
                 var genres = SpotifyAPIService.GetSongGenresDict(retrievedAccessToken, likedSongs.Result.Item2);
-                Console.WriteLine("Total genres found: " + genres.Result.Item1.Count);
                 foreach(var genre in genres.Result.Item2){
                     Console.WriteLine(genre);
                 }
@@ -119,8 +118,7 @@ class Program
                 Console.WriteLine($"Creating new playlist for {genre} genre...");
                 //call create playlist method in SpotifyAPIService and pass in the genre
                 //var createPlaylist = SpotifyAPIService.CreatePlaylist(retrievedAccessToken, genre);
-                //create a playlist named after the genre passed in
-                //add all songs that have the genre in in the values list of the dictionary from getsongsgenresdict
+                
             }
             else if(yesNo == "e"){
                 Console.WriteLine("Exiting...");
