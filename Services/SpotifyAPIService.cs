@@ -1,6 +1,3 @@
-using Microsoft.Identity.Client;
-using Models.SeveralArtists;
-
 public class SpotifyAPIService
 {
     public static string BuildQueryString(Dictionary<string, string> parameters)
@@ -144,7 +141,7 @@ public class SpotifyAPIService
         }
         return (songs_artistIDs, uniqueGenres);
     }  
-    public static async Task CreatePlaylist(string accessToken, string userID, string genre){
+    public static async Task<string> CreatePlaylist(string accessToken, string userID, string genre){
         //make a post request to https://api.spotify.com/v1/users/{user_id}/playlists
         var client = new HttpClient();
         var request = new HttpRequestMessage();
@@ -152,16 +149,19 @@ public class SpotifyAPIService
         request.Method = HttpMethod.Post;
 
         request.Headers.Add("Authorization", "Bearer " + accessToken);
-        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        var messageContent = new FormUrlEncodedContent(
-        [
-            new KeyValuePair<string, string>("name", genre),
-            new KeyValuePair<string, string>("description", "Playlist created by SpotifyAPIService"),
-            new KeyValuePair<string, string>("public", "true"),
-        ]);
-        var response = await client.PostAsync(request.RequestUri, messageContent);
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);        
+        var requestData = new
+        {            
+            name = genre,
+            description = "Playlist created by SpotifyAPIService",
+            @public = true
+        };
+        string json = JsonSerializer.Serialize(requestData);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");     
+        var response = await client.PostAsync(request.RequestUri, content);
         var result = await response.Content.ReadAsStringAsync();
-        
+        var playlist = JsonSerializer.Deserialize<CreatedPlaylist>(result);
+        return playlist.uri;
         //using the input genre name as the name of the playlist
         //and the description as "Playlist created by SpotifyAPIService"
         //put all songs in the songs_artistIDs dictionary into the playlist that have the input genre in the values list

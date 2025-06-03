@@ -90,37 +90,45 @@ class Program
             Console.WriteLine("Create new playlist by genre? npl");
             Console.WriteLine("Exit? e");
             string yesNo = Console.ReadLine();
-            if(yesNo == "s"){
+            if (yesNo == "s")
+            {
                 Console.WriteLine("Fetching user liked songs...");
-                foreach(var item in likedSongs.Result.Item1){
+                foreach (var item in likedSongs.Result.Item1)
+                {
                     Console.WriteLine(item);
                 }
             }
-            else if(yesNo == "p"){
+            else if (yesNo == "p")
+            {
                 Console.WriteLine("Fetching user playlists...");
                 var playLists = SpotifyAPIService.GetAllUsersPlaylists(retrievedAccessToken);
-                foreach(var item in playLists.Result){
+                foreach (var item in playLists.Result)
+                {
                     Console.WriteLine(item);
                 }
             }
             //list in GetAllUsersLikedSongs will have duplicate songs, causing the SongsGenre dictionary to have duplicate keys
-            else if(yesNo == "g"){
+            else if (yesNo == "g")
+            {
                 Console.WriteLine("Fetching genres...");
                 var genres = SpotifyAPIService.GetSongGenresDict(retrievedAccessToken, likedSongs.Result.Item2);
-                foreach(var genre in genres.Result.Item2){
+                foreach (var genre in genres.Result.Item2)
+                {
                     Console.WriteLine(genre);
                 }
             }
-            else if(yesNo == "npl")
+            else if (yesNo == "npl")
             {
-                Console.WriteLine("What genre would you like to create a playlist for?");                
+                Console.WriteLine("What genre would you like to create a playlist for?");
                 string genre = Console.ReadLine();
                 Console.WriteLine($"Creating new playlist for {genre} genre...");
                 //call create playlist method in SpotifyAPIService and pass in the genre
-                //var createPlaylist = SpotifyAPIService.CreatePlaylist(retrievedAccessToken, genre);
-                
+                var createdPlaylist = SpotifyAPIService.CreatePlaylist(retrievedAccessToken, userProfile.Result.id, genre);
+                Console.WriteLine($"New playlist created for {genre} genre.");
+                Console.WriteLine("Created playlist at this url: " + createdPlaylist.Result);
             }
-            else if(yesNo == "e"){
+            else if (yesNo == "e")
+            {
                 Console.WriteLine("Exiting...");
                 stop = true;
             }
