@@ -8,3 +8,5 @@ global using System.Text.Json;
 global using System.Text.Json.Serialization;
 global using Models.LikedSongs;
 global using Models.Playlists;
+global using Models.SeveralArtists;
+global using Models.CreatedPlaylist;
