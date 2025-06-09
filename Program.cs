@@ -1,7 +1,9 @@
 ﻿
+using System.Threading.Tasks;
+
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
         //load configuration from appsettings.json
         var config = AppConfigService.InitAppConfigService();
@@ -81,14 +83,16 @@ class Program
         // Console.WriteLine($"Retrieved access token: {retrievedAccessToken}");
         Console.WriteLine("Fetched user profile for: " + userProfile.Result.display_name + " Email: " + userProfile.Result.email);
         var likedSongs = SpotifyAPIService.GetAllUsersLikedSongs(retrievedAccessToken);
-
+        var songGenres = SpotifyAPIService.GetSongGenresDict(retrievedAccessToken, likedSongs.Result.Item2);
+        var songsGenresDict = songGenres.Result.Item1;
+        var songsGenresList = songGenres.Result.Item2;
+        var playLists = SpotifyAPIService.GetAllUsersPlaylists(retrievedAccessToken);
+        Console.WriteLine("Loading...");
+        
+        PrintConsoleMessage();
         bool stop = false;
         while(stop == false){
-            Console.WriteLine("Get liked songs? s");
-            Console.WriteLine("Get playlists? p");
-            Console.WriteLine("Get genres? g");
-            Console.WriteLine("Create new playlist by genre? npl");
-            Console.WriteLine("Exit? e");
+            
             string yesNo = Console.ReadLine();
             if (yesNo == "s")
             {
@@ -97,35 +101,72 @@ class Program
                 {
                     Console.WriteLine(item);
                 }
+                PrintConsoleMessage();
             }
             else if (yesNo == "p")
             {
-                Console.WriteLine("Fetching user playlists...");
-                var playLists = SpotifyAPIService.GetAllUsersPlaylists(retrievedAccessToken);
+                Console.WriteLine("Fetching user playlists...");                
                 foreach (var item in playLists.Result)
                 {
                     Console.WriteLine(item);
                 }
+                PrintConsoleMessage();
             }
             //list in GetAllUsersLikedSongs will have duplicate songs, causing the SongsGenre dictionary to have duplicate keys
             else if (yesNo == "g")
             {
                 Console.WriteLine("Fetching genres...");
-                var genres = SpotifyAPIService.GetSongGenresDict(retrievedAccessToken, likedSongs.Result.Item2);
-                foreach (var genre in genres.Result.Item2)
+                foreach (var genre in songsGenresList)
                 {
                     Console.WriteLine(genre);
                 }
+                PrintConsoleMessage();
             }
             else if (yesNo == "npl")
             {
+                Console.WriteLine("Available genres:");
+                foreach (var genre in songsGenresList)
+                {
+                    Console.WriteLine(genre);
+                }
                 Console.WriteLine("What genre would you like to create a playlist for?");
-                string genre = Console.ReadLine();
-                Console.WriteLine($"Creating new playlist for {genre} genre...");
-                //call create playlist method in SpotifyAPIService and pass in the genre
-                var createdPlaylist = SpotifyAPIService.CreatePlaylist(retrievedAccessToken, userProfile.Result.id, genre);
-                Console.WriteLine($"New playlist created for {genre} genre.");
-                Console.WriteLine("Created playlist at this url: " + createdPlaylist.Result);
+                string song_genre = "";
+                while (true)
+                {
+                    Console.WriteLine("Please enter a genre from the list above:");
+                    song_genre = Console.ReadLine();
+                    if (string.IsNullOrWhiteSpace(song_genre))
+                    {
+                        Console.WriteLine("Input cannot be empty. Please try again.");
+                        continue;
+                    }
+                    if (!songsGenresList.Contains(song_genre))
+                    {
+                        Console.WriteLine("Genre not found. Please try again.");
+                        continue;
+                    }
+                    break;
+                }
+                                
+                Console.WriteLine($"Creating new playlist for {song_genre} genre...");
+                //call create playlist method in SpotifyAPIService and pass in the genre                
+                var createdPlaylist = SpotifyAPIService.CreatePlaylist(retrievedAccessToken, userProfile.Result.id, song_genre);
+                List<string> songsUrisToAdd = likedSongs.Result.Item2.Where(song => songsGenresDict.ContainsKey(song.track.name) && songsGenresDict[song.track.name].Contains(song_genre))
+                    .Select(song => song.track.uri).ToList();
+                
+                //put all songs in the song_genres dictionary into the playlist that have the input genre in the values list
+                if (songsUrisToAdd.Count > 0)
+                {
+                    Console.WriteLine($"Adding {songsUrisToAdd.Count} songs to the playlist...");
+                    SpotifyAPIService.AddSongsToPlaylist(retrievedAccessToken, createdPlaylist.Result.id, songsUrisToAdd);
+                }
+                else
+                {
+                    Console.WriteLine("No songs found for the specified genre.");
+                }
+                Console.WriteLine($"New playlist created for {song_genre} genre with {songsUrisToAdd.Count} songs.");
+                Console.WriteLine("Created playlist at this url: " + createdPlaylist.Result.href);
+                PrintConsoleMessage();
             }
             else if (yesNo == "e")
             {
@@ -134,6 +175,14 @@ class Program
             }
         }
 
+    }
+    public static void PrintConsoleMessage()
+    {
+        Console.WriteLine("\nGet liked songs? s");
+        Console.WriteLine("Get playlists? p");
+        Console.WriteLine("Get genres? g");
+        Console.WriteLine("Create new playlist by genre? npl");
+        Console.WriteLine("Exit? e");
     }
     static string BuildQueryString(Dictionary<string, string> parameters)
     {
