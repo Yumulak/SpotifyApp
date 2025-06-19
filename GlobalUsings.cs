@@ -10,3 +10,4 @@ global using Models.LikedSongs;
 global using Models.Playlists;
 global using Models.SeveralArtists;
 global using Models.CreatedPlaylist;
+global using Serilog;

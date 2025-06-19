@@ -6,6 +6,9 @@ public static class AppConfigService
         .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
         .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
         .Build();
+        Log.Logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(Configuration)
+            .CreateLogger();
         return Configuration;
     }
 }

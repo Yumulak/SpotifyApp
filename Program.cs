@@ -1,5 +1,4 @@
-﻿
-using System.Threading.Tasks;
+﻿using System.IO.Pipes;
 
 class Program
 {
@@ -38,6 +37,20 @@ class Program
         var uriBuilder = new UriBuilder(authUrl){
             Query = BuildQueryString(queryParams)
         };
+
+        try
+        {
+            Log.Information("Application starting...");
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "An unhandled exception occurred during application startup.");
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
+        
         Console.WriteLine("Navigating to the following URL to authorize the app:");
         Console.WriteLine(uriBuilder.ToString());
         Console.WriteLine();
@@ -91,8 +104,9 @@ class Program
         
         PrintConsoleMessage();
         bool stop = false;
-        while(stop == false){
-            
+        while (stop == false)
+        {
+
             string yesNo = Console.ReadLine();
             if (yesNo == "s")
             {
@@ -105,7 +119,7 @@ class Program
             }
             else if (yesNo == "p")
             {
-                Console.WriteLine("Fetching user playlists...");                
+                Console.WriteLine("Fetching user playlists...");
                 foreach (var item in playLists.Result)
                 {
                     Console.WriteLine(item);
@@ -147,13 +161,13 @@ class Program
                     }
                     break;
                 }
-                                
+
                 Console.WriteLine($"Creating new playlist for {song_genre} genre...");
                 //call create playlist method in SpotifyAPIService and pass in the genre                
                 var createdPlaylist = SpotifyAPIService.CreatePlaylist(retrievedAccessToken, userProfile.Result.id, song_genre);
                 List<string> songsUrisToAdd = likedSongs.Result.Item2.Where(song => songsGenresDict.ContainsKey(song.track.name) && songsGenresDict[song.track.name].Contains(song_genre))
                     .Select(song => song.track.uri).ToList();
-                
+
                 //put all songs in the song_genres dictionary into the playlist that have the input genre in the values list
                 if (songsUrisToAdd.Count > 0)
                 {
@@ -172,6 +186,11 @@ class Program
             {
                 Console.WriteLine("Exiting...");
                 stop = true;
+            }
+            else
+            {
+                Console.WriteLine("Invalid input. Please try again.");
+                PrintConsoleMessage();
             }
         }
 
